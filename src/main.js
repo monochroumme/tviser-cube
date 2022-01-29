@@ -1,7 +1,12 @@
+// default
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
+
+// styles
+import './assets/styles/app.scss'
+import './assets/styles/common.scss'
 
 Vue.config.productionTip = false
 

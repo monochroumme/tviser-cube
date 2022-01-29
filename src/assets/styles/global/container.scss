@@ -1,0 +1,15 @@
+.g-container {
+  width: 100%;
+  max-width: 1250px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 60px;
+}
+
+@media (max-width: 600px) {
+  .g-container {
+    padding-top: 110px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
