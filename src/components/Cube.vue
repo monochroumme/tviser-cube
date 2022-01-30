@@ -6,7 +6,8 @@
 
 <script>
 import * as THREE from 'three'
-// import * as math from 'mathjs'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as math from 'mathjs'
 
 export default {
   name: 'TheCube',
@@ -47,7 +48,11 @@ export default {
       ],
       visibleCompanies: null,
       arrowHelper: null,
-      cameraDirection: new THREE.Vector3()
+      arrowHelper2: null,
+      cameraDirection: new THREE.Vector3(),
+      threeClock: new THREE.Clock(),
+      controls: null,
+      mouseDownTime: null
     }
   },
 
@@ -58,7 +63,8 @@ export default {
     this.onResize()
 
     window.addEventListener('resize', this.onResize)
-    window.addEventListener('mouseup', this.onDocumentMouseDown)
+    window.addEventListener('mousedown', this.onMouseDown)
+    window.addEventListener('click', this.onDocumentClick)
     window.addEventListener('mousemove', this.onMouseMove)
   },
 
@@ -70,6 +76,10 @@ export default {
     onResize () {
       this.$refs.cube.style.width = this.$refs.cube.style.height =
         `${window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth}px`
+    },
+
+    onMouseDown () {
+      this.mouseDownTime = Date.now()
     },
 
     loadTextures (textureURLs, callback) {
@@ -110,27 +120,52 @@ export default {
       const geometry = new THREE.BoxBufferGeometry(boxSize, boxSize, boxSize)
       this.mesh = new THREE.Mesh(geometry, materials)
       this.arrowHelper = new THREE.ArrowHelper(this.mesh.getWorldDirection(new THREE.Vector3()), this.mesh.position, 500, 0xff0000)
+      this.arrowHelper2 = new THREE.ArrowHelper(this.mesh.getWorldDirection(new THREE.Vector3()), this.mesh.position, 500, 0xff0000)
       this.scene.add(this.mesh)
       this.scene.add(this.arrowHelper)
+      this.scene.add(this.arrowHelper2)
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
       this.renderer.setPixelRatio(window.devicePixelRatio)
       this.renderer.setSize(boxSize, boxSize)
       document.getElementById('cube').appendChild(this.renderer.domElement)
       this.canvas = this.renderer.domElement
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     },
 
     animate () {
-      requestAnimationFrame(this.animate)
+      const deltaTime = this.threeClock.getDelta()
       if (this.mesh && this.renderer && this.scene && this.camera) {
-        this.mesh.rotation.x += 0.003
-        this.mesh.rotation.y += 0.004
-        this.arrowHelper.setDirection(this.mesh.getWorldDirection(new THREE.Vector3()))
+        this.mesh.rotation.x += 0.3 * deltaTime
+        this.mesh.rotation.y += 0.4 * deltaTime
+        const meshDirection = this.mesh.getWorldDirection(new THREE.Vector3()).clone()
+        // const arrowDirectionMatrix = math.rotate([meshDirection.x, meshDirection.y, meshDirection.z], math.unit('90deg'), [1, 0, 0])
+        // const arrowDirectionMatrix2 = math.rotate([meshDirection.x, meshDirection.y, meshDirection.z], math.unit('90deg'), [0, 1, 0])
+        // const arrowDirectionMatrix2 = this.rotate(Math.PI / 2, meshDirection)
+        // console.log(meshDirection, arrowDirectionMatrix2)
+        // this.arrowHelper.setDirection(new THREE.Vector3(arrowDirectionMatrix[0], arrowDirectionMatrix[1], arrowDirectionMatrix[2]))
+        this.arrowHelper2.setDirection(meshDirection)
+        this.arrowHelper.setDirection(meshDirection)
+        // this.arrowHelper.setDirection(meshDirection)
         this.renderer.render(this.scene, this.camera)
         // this.handleFaceVisibility()
       }
+      requestAnimationFrame(this.animate)
     },
 
-    onDocumentMouseDown (event) {
+    rotate (deg, vector) {
+      const rotationMatrixX = ([[1, 0, 0], [0, Math.cos(deg), -Math.sin(deg)], [0, Math.sin(deg), Math.cos(deg)]])
+      const rotationMatrixY = ([[Math.cos(deg), 0, Math.sin(deg)], [0, 1, 0], [-Math.sin(deg), 0, Math.cos(deg)]])
+      const rotationMatrixZ = ([[Math.cos(deg), -Math.sin(deg), 0], [Math.sin(deg), Math.cos(deg), 0], [0, 0, 1]])
+      const rotationMatrix = math.multiply(math.multiply(rotationMatrixZ, rotationMatrixY), rotationMatrixX)
+      const vectorArray = [vector.x, vector.y, vector.z]
+      return math.multiply(rotationMatrix, vectorArray)
+    },
+
+    onDocumentClick (event) {
+      if (Date.now() - this.mouseDownTime > 200) {
+        return
+      }
+
       const pointer = new THREE.Vector2(
         (event.clientX / window.innerWidth) * 2 - 1,
         -(event.clientY / window.innerHeight) * 2 + 1
@@ -223,7 +258,8 @@ export default {
 
   beforeDestroy () {
     window.removeEventListener('resize', this.onResize)
-    window.removeEventListener('mouseup', this.onDocumentMouseDown)
+    window.removeEventListener('mousedown', this.onMouseDown)
+    window.removeEventListener('click', this.onDocumentClick)
     window.removeEventListener('mousemove', this.onMouseMove)
     if (this.mesh && this.mesh.dispose) {
       this.mesh.dispose()
